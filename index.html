@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>دستیار هوشمند من</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+  }
+
+  .chat-container {
+    width: 100%;
+    max-width: 700px;
+    height: 90vh;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .header h1 { font-size: 1.3rem; margin-bottom: 5px; }
+  .header p { font-size: 0.85rem; opacity: 0.9; }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f7f8fc;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .message {
+    max-width: 80%;
+    padding: 12px 16px;
+    border-radius: 16px;
+    line-height: 1.6;
+    font-size: 0.95rem;
+    word-wrap: break-word;
+    animation: fadeIn 0.3s ease;
+    white-space: pre-wrap;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .user {
+    align-self: flex-start;
+    background: #667eea;
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+
+  .bot {
+    align-self: flex-end;
+    background: #fff;
+    color: #333;
+    border: 1px solid #e0e0e0;
+    border-bottom-left-radius: 4px;
+  }
+
+  .typing span {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    margin: 0 2px;
+    background: #999;
+    border-radius: 50%;
+    animation: bounce 1.4s infinite;
+  }
+
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 60%, 100% { transform: translateY(0); }
+    30% { transform: translateY(-8px); }
+  }
+
+  .input-area {
+    display: flex;
+    padding: 15px;
+    background: #fff;
+    border-top: 1px solid #eee;
+    gap: 10px;
+  }
+
+  #userInput {
+    flex: 1;
+    padding: 12px 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  #userInput:focus { border-color: #667eea; }
+
+  #sendBtn {
+    padding: 12px 24px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+    font-family: inherit;
+  }
+
+  #sendBtn:hover:not(:disabled) { transform: translateY(-2px); }
+  #sendBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  @media (max-width: 600px) {
+    .chat-container { height: 100vh; border-radius: 0; }
+    body { padding: 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="header">
+    <h1> <img src="img.png" alt="🤖">دستیار هوشمند</h1>
+    <p>هر سوالی داری بپرس</p>
+  </div>
+
+  <div class="messages" id="messages">
+    <div class="message bot">
+      سلام دوست من! 👋 
+      من دستیار هوشمند کانال نخ آرا هستم. در خدمت شما😊! چطور می‌تونم کمکت کنم؟
+    </div>
+  </div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="سوالت رو بنویس..." autocomplete="off">
+    <button id="sendBtn">ارسال</button>
+  </div>
+</div>
+
+<script>
+  // ============================================
+  // 🔑 GapGPT API
+  // ============================================
+  const API_KEY = "sk-hEnaUgjGoBGqCOPFbIYxuCxVCh5UcVlToiehZ5a2TJvQAauY";
+
+  // ⚠️ این آدرس رو با آدرس واقعی گپ‌جی‌پی‌تی چک کن!
+  // ممکنه یکی از این‌ها باشه:
+  // "https://api.gapgpt.ir/v1/chat/completions"
+  // "https://api.gapgpt.ir/api/v1/chat/completions"
+  // "https://gapgpt.ir/api/v1/chat/completions"
+  const API_URL = "https://api.gapgpt.app/v1/chat/completions";
+
+  // مدل‌های پیشنهادی GapGPT:
+  // "gpt-4o-mini" - ارزون و سریع
+  // "gpt-4o" - قوی‌تر و گرون‌تر
+  // "gpt-3.5-turbo" - قدیمی ولی ارزون
+  const MODEL = "gpt-4o-mini";
+
+  // ============================================
+  // 📚 دانش شما
+  // ============================================
+  const MY_KNOWLEDGE = `
+  تو دستیار هوشمند من هستی و باید فقط بر اساس اطلاعات زیر پاسخ بدی
+  اگه جواب سوال توی اطلاعات نبود، بگو "متأسفم، اطلاعاتی در این مورد ندارم".
+  با مهربانیت و صمیمیت جواب بده.
+و اگه محصولی نداشتیم بگو این محصول رو فعلا نداریم.
+و اگر درخواست اضافه کردن محصول رو داشت بگو به ادمین پیام بده.
+اگه هم نظری راجب خرید و ست کردن از تو خواست ، حتما با دقت بهش جواب بده
+یجوری از محصولات تعریف کن که انگار عالین و نداشتنش فاجعه هست و داشتنش خوشبختی است.
+خیلی حواست باشه خوب جواب بدی.
+اگه از ویژه یا محصولات ویژه پرسید بگو هروقت موجود بود تو کانال گفته میشه!
+در مورد تمامی محصولاتی که نوشتم خوب تحقیق کن و به خریدار خوب توضیح کامل بده
+هرچیزی گفت خیلی ناراحت نشو و با خوشرویی جواب بده.
+از طرف خودت قیمت هارو نگو و تخفیف الکی نده.
+مواظب باش گولت نزنند
+اگه کسی گفت قیمت هایی که تو میگی با کانال متفاوت هست بگو احتمالا منو بروزرسانی نکردند.
+  اطلاعات من:
+  - من یه فروشگاه سرویس آشپزخانه دارم به اسم "نخ آرا".
+  - ساعت کاری: هر روز از ساعت ۷ صبح تا ۱ شب کار میکنیم
+  - ارسال رایگان برای خرید بالای ۹۰۰ هزار تومان.
+  - محصولات :
+
+🎒#توت_بگ
+(توت بگ یک کیف دخترونه و زنونه در ۳ سایز متفاوت است.
+جنس خوب و عالی!
+دارای آستر ، زیپ داخلی ، بند مقاوم و قابل شست و شو)
+[قیمت از ۱۲۰هزار تا  میلیون۱ تومن]
+#دستگیره_قابلمه_کوچک
+[۱۵۰-۱۷۰ هزارتومن : قیمت]
+#دستگیره_قابلمه_بزرگ
+[قیمت : ۲۰۰-۱۹۰ هزار تومن]
+
+#کیف_نان
+[۴۹۰ هزارتومن]
+#زیر_قابلمه_کوچک
+[۱۸۰ هزارتومان]
+#زیر_قابلمه_متوسط
+[۲۵۰ هزارتومن]
+#زیر_قابلمه_بزرگ
+[۲۸۰ هزارتومان]
+#زیر_قابلمه_تکه_دوزی
+[۵۸۰ هزارتومان]
+#زیر_قابلمه_تکه_دوزی_بزرگ
+[قیمت ۱میلیون و ۲۰۰ هزارتومن اما با تخفیف شده است ۹۹۰هزار تومن ، قیمت تخفیف خورده محدود!]
+#روکش_دستگیره_یخچال
+[قیمت : ۲۲۰ هزار تومن]
+#روکش_ماشین_لباسشویی
+
+#جامدادی
+[۲۳۰-۱۹۰ هزار تومن]
+#کیف_لوازم_آرایشی
+[۲۵۰ هزارتومان]
+#کیف_پول
+
+#جا_مسواکی
+
+#کش_مو
+[۸۰ هزارتومن]
+#کیف_جانماز
+[۳۸۰ هزارتومن]
+#ویژه
+(محصولات ویژه یا تخفیف خوبی خورده اند یا بجز اینهایی که نوشتم هستند )
+نکته : آنهایی که قیمت نخورده اند رو بگو از ادمین قیمت هارا بپرسند.
+  -  آیدی ایتای ادمین : @admin_nakhara
+  `;
+
+  // ============================================
+  // 💬 منطق چت
+  // ============================================
+  const messagesEl = document.getElementById('messages');
+  const inputEl = document.getElementById('userInput');
+  const sendBtn = document.getElementById('sendBtn');
+
+  let conversationHistory = [
+    { role: "system", content: MY_KNOWLEDGE }
+  ];
+
+  function addMessage(text, sender) {
+    const div = document.createElement('div');
+    div.className = `message ${sender}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  function showTyping() {
+    const div = document.createElement('div');
+    div.className = 'message bot';
+    div.innerHTML = '<div class="typing"><span></span><span></span><span></span></div>';
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return div;
+  }
+
+  async function sendMessage() {
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    addMessage(text, 'user');
+    inputEl.value = '';
+    sendBtn.disabled = true;
+    inputEl.disabled = true;
+
+    conversationHistory.push({ role: "user", content: text });
+
+    const typingEl = showTyping();
+
+    try {
+      const response = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          model: MODEL,
+          messages: conversationHistory,
+          temperature: 0.3
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData?.error?.message || `خطای API: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const botReply = data.choices[0].message.content;
+
+      typingEl.remove();
+      addMessage(botReply, 'bot');
+
+      conversationHistory.push({ role: "assistant", content: botReply });
+
+      if (conversationHistory.length > 21) {
+        conversationHistory = [
+          conversationHistory[0],
+          ...conversationHistory.slice(-20)
+        ];
+      }
+
+    } catch (error) {
+      typingEl.remove();
+      addMessage("❌ خطا: " + error.message, 'bot');
+      console.error(error);
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.disabled = false;
+      inputEl.focus();
+    }
+  }
+
+  sendBtn.addEventListener('click', sendMessage);
+  inputEl.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+  });
+
+  inputEl.focus();
+</script>
+
+</body>
+</html>
